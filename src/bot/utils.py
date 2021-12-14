@@ -1,0 +1,9 @@
+from aiogram.dispatcher.filters.state import State, StatesGroup
+
+class BotStates(StatesGroup):
+    STATE_0 = State()
+    STATE_1 = State()
+    STATE_2 = State()
+
+if __name__ == '__main__':
+    print(BotStates.all_states)
