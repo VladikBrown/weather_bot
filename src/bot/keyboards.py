@@ -3,10 +3,7 @@
 #   InlineKeyboardMarkup, InlineKeyboardButton
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from src.bot.constants import WEATHER_BUTTON_LABEL, NOTIFICATION_BUTTON_LABEL, WEATHER_BUTTON_CALLBACK_DATA, \
-    NOTIFICATION_BUTTON_CALLBACK_DATA, NOTIFICATION_MORNING_LABEL, NOTIFICATION_EVENING_LABEL, \
-    NOTIFICATION_MORNING_CALLBACK_DATA, NOTIFICATION_EVENING_CALLBACK_DATA, NOTIFICATION_DISABLE_LABEL, \
-    DISABLE_NOTIFICATION_CALLBACK_DATA
+from src.bot.constants import *
 
 # button_menu_weather = InlineKeyboardButton('Weather', callback_data='menu_weather')
 # button_menu_notifications = InlineKeyboardButton('Notifications', callback_data='menu_notifications')
@@ -32,3 +29,14 @@ set_up_notification_keyboard = [
 ]
 
 set_up_notification_reply_markup = InlineKeyboardMarkup(set_up_notification_keyboard)
+
+select_forecast_keyboard = [
+    [
+        InlineKeyboardButton(TODAY_FORECAST_LABEL, callback_data=TODAY_FORECAST_CALLBACK_DATA)
+    ],
+    [
+        InlineKeyboardButton(WEEK_FORECAST_LABEL, callback_data=WEEK_FORECAST_CALLBACK_DATA)
+    ]
+]
+
+select_forecast_reply_markup = InlineKeyboardMarkup(select_forecast_keyboard)

@@ -8,15 +8,16 @@ from telegram.ext import CommandHandler
 
 from service.weather_service import *
 from bot.filters import WeatherFilter, NotificationFilter
-from bot.constants import WEATHER_BUTTON_LABEL, NOTIFICATION_BUTTON_LABEL, WEATHER_BUTTON_CALLBACK_DATA, \
-    NOTIFICATION_BUTTON_CALLBACK_DATA, NOTIFICATION_EVENING_CALLBACK_DATA, NOTIFICATION_MORNING_CALLBACK_DATA
+from bot.constants import *
 
-from bot.keyboards import main_menu_reply_markup, set_up_notification_reply_markup
+from bot.keyboards import main_menu_reply_markup, set_up_notification_reply_markup, select_forecast_keyboard, \
+    select_forecast_reply_markup
+from src.bot.message_formatter import format_daily_forecast, format_weekly_forecast
 
 updater = Updater(token=TG_API_TOKEN, use_context=True)
 jq = updater.job_queue
 dispatcher = updater.dispatcher
-MENU, WEATHER, NOTIFICATION = range(3)
+MENU, WEATHER, NOTIFICATION, INPUT_WEATHER = range(4)
 notification_jobs = list()
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -65,6 +66,12 @@ def button_pressed_handler(update: Update, context: CallbackContext):
     elif data == 'disable_notifications':
         disable_notifications(update, context)
         return MENU
+    elif data == 'today':
+        get_forecast(update, context)
+        return MENU
+    elif data == 'week':
+        get_forecast(update, context)
+        return MENU
 
 
 def handle_weather_button(update: Update, context: CallbackContext):
@@ -78,11 +85,33 @@ def handle_weather_button(update: Update, context: CallbackContext):
         return NOTIFICATION
 
 
+def get_forecast(update: Update, context: CallbackContext):
+    query = update.callback_query
+    data = query.data
+    reply = str()
+    city = context.user_data['city']
+    if data == TODAY_FORECAST_CALLBACK_DATA:
+        weather = get_today_forecast_by_city(city)
+        if weather is not None:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=emojize(format_daily_forecast(weather)),
+                                     reply_markup=main_menu_reply_markup)
+        #todo we don't know such city
+    elif data == WEEK_FORECAST_CALLBACK_DATA:
+        weather = get_5_day_forecast_by_city(city)
+        if weather is not None:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=emojize(format_weekly_forecast(weather)),
+                                     reply_markup=main_menu_reply_markup)
+    return MENU
+
+
 def handle_notification_button(update: Update, context: CallbackContext):
     query = update.callback_query
     print(query.data)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text='Please enter your city!')
+    return NOTIFICATION
 
 
 def get_weather(update: Update, context: CallbackContext):
@@ -94,14 +123,6 @@ def get_weather_by_city(context: CallbackContext):
     job_context = context.job.context
     weather = get_today_forecast_by_city(job_context['city'])
     context.bot.send_message(chat_id=job_context['chat_id'], text=format_daily_forecast_message(weather))
-
-
-def get_weather_with_reply_markup(update: Update, context: CallbackContext):
-    weather = get_today_forecast_by_city(update.message.text)
-    context.bot.send_message(chat_id=update.effective_chat.id,
-                             text=format_daily_forecast_message(weather),
-                             reply_markup=main_menu_reply_markup)
-    return MENU
 
 
 def set_up_notification(update: Update, context: CallbackContext, when: str):
@@ -147,15 +168,24 @@ def set_city_for_notification(update: Update, context: CallbackContext):
     value = update.message.text
     context.user_data[key] = value
     context.bot.send_message(chat_id=update.effective_chat.id,
-                             text='Please select when do you want to get forecast!',
+                             text='Please select when do you want to get forecast',
                              reply_markup=set_up_notification_reply_markup)
+    return MENU
+
+
+def set_city_for_weather(update: Update, context: CallbackContext):
+    key = 'city'
+    value = update.message.text
+    context.user_data[key] = value
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text='What forecast?',
+                             reply_markup=select_forecast_reply_markup)
     return MENU
 
 
 def format_daily_forecast_message(weather: WeatherData):
     if weather is not None:
         return "Current weather in {0}\n Actual: {1} \n Feels like: {2}\n " \
-               "Description:{3}\n Sunset:{4}\n Sunrise{5}\n" \
             .format(weather.city,
                     weather.current_temp,
                     weather.feels_like)
@@ -174,7 +204,7 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             MENU: [CallbackQueryHandler(button_pressed_handler)],
-            WEATHER: [MessageHandler(Filters.text & ~Filters.command, get_weather_with_reply_markup)],
+            WEATHER: [MessageHandler(Filters.text & ~Filters.command, set_city_for_weather)],
             NOTIFICATION: [MessageHandler(Filters.text & ~Filters.command, set_city_for_notification)]
         },
         fallbacks=[CommandHandler('cancel', start)]

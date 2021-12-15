@@ -28,15 +28,6 @@ EVENING_TIME = '21:00'
 CELSIUS_SIGN = "°C"
 
 
-emoji_mapping = {
-    'Thunderstorm': ':zap:',
-    'Drizzle': ':umbrella:',
-    'Rain': ':umbrella:',
-    'Snow': ':snowflake:',
-    'Clear': ':sunny:',
-    'Clouds': ':cloud:'
-}
-
 @dataclass
 class WeatherData:
     city: str
