@@ -30,25 +30,41 @@ def start(update: Update, context: CallbackContext):
     return MENU
 
 
+# match data:
+# case 'weather':
+# handle_weather_button(update, context)
+# return WEATHER
+# case 'notification':
+# handle_weather_button(update, context)
+# return NOTIFICATION
+# case 'morning':
+# set_up_notification(update, context, when='morning')
+# return MENU
+# case 'evening':
+# set_up_notification(update, context, when='evening')
+# return MENU
+# case 'disable_notifications':
+# disable_notifications(update, context)
 def button_pressed_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     data = query.data
     query.answer()
-    match data:
-        case 'weather':
-            handle_weather_button(update, context)
-            return WEATHER
-        case 'notification':
-            handle_weather_button(update, context)
-            return NOTIFICATION
-        case 'morning':
-            set_up_notification(update, context, when='morning')
-            return MENU
-        case 'evening':
-            set_up_notification(update, context, when='evening')
-            return MENU
-        case 'disable_notifications':
-            disable_notifications(update, context)
+
+    if data == 'weather':
+        handle_weather_button(update, context)
+        return WEATHER
+    elif data == 'notification':
+        handle_weather_button(update, context)
+        return NOTIFICATION
+    elif data == 'morning':
+        set_up_notification(update, context, when='morning')
+        return MENU
+    elif data == 'evening':
+        set_up_notification(update, context, when='evening')
+        return MENU
+    elif data == 'disable_notifications':
+        disable_notifications(update, context)
+        return MENU
 
 
 def handle_weather_button(update: Update, context: CallbackContext):
@@ -70,18 +86,18 @@ def handle_notification_button(update: Update, context: CallbackContext):
 
 
 def get_weather(update: Update, context: CallbackContext):
-    weather = get_current_weather_by_city(update.message.text)
+    weather = get_today_forecast_by_city(update.message.text)
     context.bot.send_message(chat_id=update.effective_chat.id, text=format_daily_forecast_message(weather))
 
 
 def get_weather_by_city(context: CallbackContext):
     job_context = context.job.context
-    weather = get_current_weather_by_city(job_context['city'])
+    weather = get_today_forecast_by_city(job_context['city'])
     context.bot.send_message(chat_id=job_context['chat_id'], text=format_daily_forecast_message(weather))
 
 
 def get_weather_with_reply_markup(update: Update, context: CallbackContext):
-    weather = get_current_weather_by_city(update.message.text)
+    weather = get_today_forecast_by_city(update.message.text)
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text=format_daily_forecast_message(weather),
                              reply_markup=main_menu_reply_markup)
@@ -91,7 +107,7 @@ def get_weather_with_reply_markup(update: Update, context: CallbackContext):
 def set_up_notification(update: Update, context: CallbackContext, when: str):
     global job_minute
     city = context.user_data['city']
-    weather = get_current_weather_by_city(city)
+    weather = get_today_forecast_by_city(city)
     job_context = {'chat_id': update.effective_chat.id, 'city': city}
     if weather is not None:
         if when == 'morning':
@@ -139,10 +155,10 @@ def set_city_for_notification(update: Update, context: CallbackContext):
 def format_daily_forecast_message(weather: WeatherData):
     if weather is not None:
         return "Current weather in {0}\n Actual: {1} \n Feels like: {2}\n " \
-               "Description:{3}\n Sunset:{4}\n Sunrise{5}\n"\
+               "Description:{3}\n Sunset:{4}\n Sunrise{5}\n" \
             .format(weather.city,
-                    format_float_temp(weather.current_temp),
-                    format_float_temp(weather.feels_like))
+                    weather.current_temp,
+                    weather.feels_like)
     else:
         return "We don't know such city yet. Please check if you spell it correctly or try another one"
 
